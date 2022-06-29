@@ -1,7 +1,8 @@
 import discord
 from   discord.ext import commands
+from   discord.ext.commands import Greedy, Context
+from typing import Literal, Optional
 from   Cogs import Utils, Settings, CheckRoles, DisplayName, Utils
-
 # This is the admin module.  It holds the admin-only commands
 # Everything here *requires* that you're an admin
 
@@ -20,8 +21,58 @@ class Admin(commands.Cog):
 		Utils = self.bot.get_cog("Utils")
 		DisplayName = self.bot.get_cog("DisplayName")
 
-	
-	@commands.command()
+	@commands.hybrid_group(name="admin")
+	async def admin_commands(self, ctx: commands.Context) -> None:
+		"""
+		The parent for all commands in the "Admin" category
+		"""
+
+	# Note: Will not be in the "Admin" group
+	@commands.command(name="sync")
+	async def sync(self, ctx: Context, guilds: Greedy[discord.Object], spec: Optional[Literal["~", "*", "^"]] = None) -> None:
+		"""Syncs application commands so that they are added properly
+		!sync -> global sync
+		!sync ~ -> sync current guild
+		!sync * -> copies all global app commands to current guild and syncs
+		!sync ^ -> clears all commands from the current guild target and syncs (removes guild commands)
+		!sync id_1 id_2 -> syncs guilds with id 1 and 2"""
+
+		if not guilds:
+			if spec == "~":
+				synced = await self.bot.tree.sync(guild=ctx.guild)
+			elif spec == "*":
+				self.bot.tree.copy_global_to(guild=ctx.guild)
+				synced = await self.bot.tree.sync(guild=ctx.guild)
+			elif spec == "^":
+				self.bot.tree.clear_commands(guild=ctx.guild)
+				await self.bot.tree.sync(guild=ctx.guild)
+				synced = []
+			else:
+				synced = await self.bot.tree.sync()
+
+			await ctx.send(
+				f"Synced {len(synced)} commands {'globally' if spec is None else 'to the current guild.'}"
+			)
+			return
+
+		ret = 0
+		for guild in guilds:
+			try:
+				await self.bot.tree.sync(guild=guild)
+			except discord.HTTPException:
+				pass
+			else:
+				ret += 1
+
+		await ctx.send(f"Synced the tree to {ret}/{len(guilds)}.")
+
+	@admin_commands.group(name="default_channel")
+	async def default_channel(self, ctx: commands.Context) -> None:
+		"""
+		The parent for all subcommands related to setting a default channel.
+		"""
+
+	@default_channel.command(name="default_channel")
 	async def defaultchannel(self, ctx):
 		"""Lists the server's default channel, whether custom or not."""
 		# Returns the default channel for the server
@@ -45,10 +96,10 @@ class Admin(commands.Cog):
 		else:
 			# We have a custom channel
 			msg = "The default channel is set to **{}**.".format(targetChan.mention)
-		await ctx.channel.send(msg)
+		await ctx.send(msg)
 		
 	
-	@commands.command()
+	@default_channel.command(name="set_default_channel")
 	async def setdefaultchannel(self, ctx, *, channel: discord.TextChannel = None):
 		"""Sets a replacement default channel for bot messages (admin only)."""
 		
@@ -62,24 +113,24 @@ class Admin(commands.Cog):
 				msg = 'Default channel has been *removed completely*.'
 			else:
 				msg = 'Default channel has been returned to the server\'s original:  **{}**.'.format(default.mention)
-			await ctx.message.channel.send(msg)
+			await ctx.send(msg)
 			return
 
 		# If we made it this far - then we can add it
 		self.settings.setServerStat(ctx.message.guild, "DefaultChannel", channel.id)
 
 		msg = 'Default channel set to **{}**.'.format(channel.mention)
-		await ctx.message.channel.send(msg)
+		await ctx.send(msg)
 		
 	
 	@setdefaultchannel.error
 	async def setdefaultchannel_error(self, error, ctx):
 		# do stuff
 		msg = 'setdefaultchannel Error: {}'.format(error)
-		await ctx.channel.send(msg)
+		await ctx.send(msg)
 	
 
-	@commands.command()
+	@admin_commands.command()
 	async def setmadlibschannel(self, ctx, *, channel: discord.TextChannel = None):
 		"""Sets the channel for MadLibs (admin only)."""
 		
@@ -88,7 +139,7 @@ class Admin(commands.Cog):
 		if channel == None:
 			self.settings.setServerStat(ctx.message.guild, "MadLibsChannel", "")
 			msg = 'MadLibs works in *any channel* now.'
-			await ctx.message.channel.send(msg)
+			await ctx.send(msg)
 			return
 
 		if type(channel) is str:
@@ -102,14 +153,14 @@ class Admin(commands.Cog):
 		self.settings.setServerStat(ctx.message.guild, "MadLibsChannel", channel.id)
 
 		msg = 'MadLibs channel set to **{}**.'.format(channel.name)
-		await ctx.message.channel.send(msg)
+		await ctx.send(msg)
 		
 	
 	@setmadlibschannel.error
 	async def setmadlibschannel_error(self, error, ctx):
 		# do stuff
 		msg = 'setmadlibschannel Error: {}'.format(error)
-		await ctx.channel.send(msg)
+		await ctx.send(msg)
 
 
 	@commands.command()

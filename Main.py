@@ -1,6 +1,7 @@
 import asyncio, discord, time, sys, os, random, traceback, json
 from   discord.ext import commands
 from   discord import errors
+from   discord import app_commands
 from   Cogs import DisplayName
 
 # Let's migrate any specific txt settings files into a single json file called settings_dict.json
@@ -402,7 +403,7 @@ async def on_message_edit(before, message):
 # Run the bot
 print("Starting up {} shard{}...".format(bot.shard_count,"" if bot.shard_count == 1 else "s"))
 async def main():
-    async with bot:
-        await bot.start(settings_dict.get("token",""))
+	async with bot:
+		await bot.start(settings_dict.get("token",""))
 
 asyncio.run(main())
