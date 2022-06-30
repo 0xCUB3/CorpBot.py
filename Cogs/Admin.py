@@ -1,7 +1,6 @@
 import discord
 from   discord.ext import commands
-from   discord.ext.commands import Greedy, Context
-from typing import Literal, Optional
+from   typing import Literal, Optional
 from   Cogs import Utils, Settings, CheckRoles, DisplayName, Utils
 # This is the admin module.  It holds the admin-only commands
 # Everything here *requires* that you're an admin
@@ -29,7 +28,7 @@ class Admin(commands.Cog):
 
 	# Note: Will not be in the "Admin" group
 	@commands.command(name="sync")
-	async def sync(self, ctx: Context, guilds: Greedy[discord.Object], spec: Optional[Literal["~", "*", "^"]] = None) -> None:
+	async def sync(self, ctx: commands.Context, guilds: commands.Greedy[discord.Object], spec: Optional[Literal["~", "*", "^"]] = None) -> None:
 		"""Syncs application commands so that they are added properly
 		!sync -> global sync
 		!sync ~ -> sync current guild
@@ -73,7 +72,7 @@ class Admin(commands.Cog):
 		"""
 
 	@default_channel.command(name="default_channel")
-	async def defaultchannel(self, ctx):
+	async def defaultchannel(self, ctx: commands.Context) -> None:
 		"""Lists the server's default channel, whether custom or not."""
 		# Returns the default channel for the server
 		default = None
